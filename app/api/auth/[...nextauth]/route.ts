@@ -1,9 +1,17 @@
 import { NextAuthOptions } from "next-auth";
 import NextAuth from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
-import { cookies } from "next/headers";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const authOption: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  secret: process.env.SECRET,
+  jwt: {
+    secret: process.env.JWT_SECRET,
+  },
   session: {
     strategy: "jwt",
   },
@@ -13,62 +21,23 @@ const authOption: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
   ],
-  secret: process.env.SECRET,
-  //   callbacks: {
-  //     async signIn({ account, profile }) {
-  //       if (!profile?.email) {
-  //         throw new Error('No profile')
-  //       }
-
-  //       const inviteKey = cookies().get('invite_key')?.value
-  //       await prisma.user.upsert({
-  //         where: {
-  //           email: profile.email
-  //         },
-  //         create: {
-  //           email: profile.email,
-  //           name: profile.name,
-  //           avatar: (profile as any).picture,
-  //           role: inviteKey ? 'USER' : 'OWNER',
-  //           tenant: inviteKey
-  //             ? {
-  //                 connect: {
-  //                   inviteKey
-  //                 }
-  //               }
-  //             : {
-  //                 create: {}
-  //               }
-  //         },
-  //         update: {
-  //           name: profile.name,
-  //           avatar: (profile as any).picture
-  //         }
-  //       })
-
-  //       cookies().delete('invite_key')
-  //       return true
-  //     },
-  //     session,
-  //     async jwt({ token, user, account, profile }) {
-  //       console.log({ token, account, profile, user })
-  //       if (profile) {
-  //         const user = await prisma.user.findUnique({
-  //           where: {
-  //             email: profile.email
-  //           }
-  //         })
-  //         if (!user) {
-  //           throw new Error('No user found')
-  //         }
-  //         token.id = user.id
-  //         token.tenant = {
-  //           id: user.tenantId
-  //         }
-  //       }
-  //       return token
-  //     }
-  //   }
+  callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+      console.log("SignIn callback: ", { user, account, profile, email, credentials });
+      return true;
+    },
+    async jwt({ token, user, account, profile, isNewUser }) {
+      console.log("JWT callback: ", { token, user, account, profile, isNewUser });
+      return token;
+    },
+    async session({ session, token, user }) {
+      console.log("Session callback: ", { session, token, user });
+      return session;
+    },    async redirect({ url, baseUrl }) {
+      return baseUrl
+    },
+  },
+}
 };
 
 const handler = NextAuth(authOption);
