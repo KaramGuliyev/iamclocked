@@ -33,11 +33,11 @@ const authOption: NextAuthOptions = {
     async session({ session, token, user }) {
       console.log("Session callback: ", { session, token, user });
       return session;
-    },    async redirect({ url, baseUrl }) {
-      return baseUrl
+    },
+    async redirect({ url, baseUrl }) {
+      return baseUrl;
     },
   },
-}
 };
 
 const handler = NextAuth(authOption);
