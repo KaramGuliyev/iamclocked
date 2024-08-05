@@ -23,36 +23,56 @@ const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
   ],
+
+  events: {
+    signIn: async (message: { user: User; account: Account | null; profile?: Profile }) => {
+      const { user, account, profile } = message;
+      console.log("User signed in:", user);
+      console.log("Account:", account);
+      console.log("Profile:", profile);
+    },
+  },
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
-      // console.log("SignIn callback: ", { user, account, profile, email, credentials });
-      const userId = new ObjectId(user.id);
-      const existingTenant = await prisma.tenant.findFirst({
-        where: { userId: userId.toString() },
-      });
+      const userId = user.id;
+      console.log(userId, ObjectId.isValid(userId));
 
-      if (!existingTenant) {
-        await prisma.tenant.create({
-          data: {
-            name: user.name || "Default Tenant Name",
-            email: user.email as string,
-            userId: userId.toString(),
-          },
+      // Ensure user.id is converted to ObjectId where necessary
+      if (ObjectId.isValid(userId)) {
+        // Example of converting string to ObjectId if needed
+        const id = new ObjectId(userId);
+
+        // Example of fetching a tenant
+        const existingTenant = await prisma.tenant.findFirst({
+          where: { userId: id.toString() },
         });
+
+        console.log(existingTenant);
+        
+
+        if (!existingTenant) {
+          await prisma.tenant.create({
+            data: {
+              name: user.name || "Default Tenant Name",
+              email: user.email as string,
+              userId: id.toString(),
+            },
+          });
+        }
+      } else {
+        console.error("Invalid ObjectId:", userId);
       }
 
       return true;
     },
-    async jwt({ token, user, account, profile, isNewUser }) {
-      // console.log("JWT callback: ", { token, user, account, profile, isNewUser });
-      return token;
-    },
-    async session({ session, token, user }) {
-      // console.log("Session callback: ", { session, token, user });
-      return session;
-    },
     async redirect({ url, baseUrl }) {
       return baseUrl;
+    },
+    async session({ session, user, token }) {
+      return session;
+    },
+    async jwt({ token, user, account, profile, isNewUser }) {
+      return token;
     },
   },
 };
