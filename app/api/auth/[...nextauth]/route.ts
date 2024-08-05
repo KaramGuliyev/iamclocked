@@ -1,12 +1,13 @@
-import { NextAuthOptions } from "next-auth";
+import { type NextAuthOptions } from "next-auth";
 import NextAuth from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
+import { User, Account, Profile } from "next-auth";
 
 const prisma = new PrismaClient();
 
-const authOption: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.SECRET,
   jwt: {
@@ -21,6 +22,7 @@ const authOption: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
   ],
+<<<<<<< Updated upstream
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
       console.log("SignIn callback: ", { user, account, profile, email, credentials });
@@ -38,7 +40,32 @@ const authOption: NextAuthOptions = {
       return baseUrl;
     },
   },
+=======
+
+  events: {
+    signIn: async (message: { user: User; account: Account | null; profile?: Profile }) => {
+      const { user, account, profile } = message;
+      console.log("User signed in:", user);
+      console.log("Account:", account);
+      console.log("Profile:", profile);
+    },
+  },
+  callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+      return true;
+    },
+    async redirect({ url, baseUrl }) {
+      return baseUrl;
+    },
+    async session({ session, user, token }) {
+      return session;
+    },
+    async jwt({ token, user, account, profile, isNewUser }) {
+      return token;
+    },
+  },
+>>>>>>> Stashed changes
 };
 
-const handler = NextAuth(authOption);
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

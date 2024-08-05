@@ -7,38 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Tenant {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  email     String    @unique
-  users     User[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  activities Activity[]
-}
 
 model User {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  email     String    @unique
-  password  String
-  tenantId  String    @db.ObjectId
-  tenant    Tenant    @relation(fields: [tenantId], references: [id])
-  activities Activity[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id               String   @id @default(uuid()) @map("_id")
+  email            String   @unique
+  name             String?
+  image            String?  // Burada image alanını ekledik
+  emailVerified     DateTime?
+  accounts         Account[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
-model Activity {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  name      String?
-  tenantId  String    @db.ObjectId
-  userId    String    @db.ObjectId
-  startAt   DateTime
-  endsAt    DateTime?
 
-  user      User      @relation(fields: [userId], references: [id])
-  tenant    Tenant    @relation(fields: [tenantId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model Account {
+  id                String   @id @default(uuid()) @map("_id")
+  provider          String
+  providerAccountId String
+  userId            String
+  user              User    @relation(fields: [userId], references: [id])
+  access_token      String?
+  expires_at        Int?
+  scope             String?
+  token_type        String?
+  id_token          String?
+  type              String? // 'type' alanını ekleyin
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  @@unique([provider, providerAccountId])
 }
+
+
+
+
 

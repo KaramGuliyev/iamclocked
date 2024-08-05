@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+<<<<<<< Updated upstream
     "dev": "NODE_OPTIONS='--inspect' next dev",
+=======
+    "dev": "npx prisma generate && next dev",
+>>>>>>> Stashed changes
     "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "next lint"
