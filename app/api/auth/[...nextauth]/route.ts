@@ -1,15 +1,11 @@
 import { type NextAuthOptions } from "next-auth";
 import NextAuth from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { PrismaClient } from "@prisma/client";
-import { User, Account, Profile } from "next-auth";
-import { ObjectId } from "mongodb";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  debug: true,
   secret: process.env.SECRET,
   jwt: {
     secret: process.env.JWT_SECRET,
@@ -25,46 +21,47 @@ const authOptions: NextAuthOptions = {
   ],
 
   events: {
-    signIn: async (message: { user: User; account: Account | null; profile?: Profile }) => {
-      const { user, account, profile } = message;
+    signIn: async ({ user, account, profile }) => {
       console.log("User signed in:", user);
       console.log("Account:", account);
       console.log("Profile:", profile);
     },
   },
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
-      const userId = user.id;
-      console.log(userId, ObjectId.isValid(userId));
-
-      // Ensure user.id is converted to ObjectId where necessary
-      if (ObjectId.isValid(userId)) {
-        // Example of converting string to ObjectId if needed
-        const id = new ObjectId(userId);
-
-        // Example of fetching a tenant
-        const existingTenant = await prisma.tenant.findFirst({
-          where: { userId: id.toString() },
-        });
-
-        console.log(existingTenant);
-        
-
-        if (!existingTenant) {
-          await prisma.tenant.create({
-            data: {
-              name: user.name || "Default Tenant Name",
-              email: user.email as string,
-              userId: id.toString(),
-            },
-          });
-        }
-      } else {
-        console.error("Invalid ObjectId:", userId);
+    async signIn({ user, account, profile }) {
+      if (!profile || !account) {
+        return false; // Başarısız oturum açma durumunda false döndür
       }
 
+      try {
+        const newUser = user;
+        console.log("Name :"+newUser.name);
+        
+        await prisma.user.upsert({
+          where: {
+            email: newUser.email as string,
+          },
+          create: {
+            email: newUser.email as string,
+            name: newUser.name as string,
+            image: newUser.image as string,
+            tenant: {
+              create: {
+                name: newUser.name as string,
+              },
+            },
+          },
+          update: {
+            name: profile.name || (user.name as string),
+            image: profile.image || (user.image as string),
+          },
+        });
+      } catch (error) {
+        console.log(error);
+      }
       return true;
     },
+
     async redirect({ url, baseUrl }) {
       return baseUrl;
     },
